@@ -9,9 +9,9 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-data_path = "./DataSet/新闻全文_已标注.csv"
+data_path = "./DataSet/news_full_text_labeled.csv"
 df = pd.read_csv(data_path, encoding="UTF-8")
-data = df.drop(labels=['发布时间',"标题", '内容', '日期'], axis=1)
+data = df.drop(labels=['publish_time',"title", 'content', 'date'], axis=1)
 print(data.head())
 
 
@@ -26,11 +26,11 @@ all_labels = []
 # Process each long text
 # for text, label in zip(texts, labels):
 for i in range(0,len(data)):
-    text=data["新闻全文"][i]
-    temp_label=data["标签"][i]
-    if temp_label=="正面":
+    text=data["news_full_text"][i]
+    temp_label=data["label"][i]
+    if temp_label=="positive":
         label=2
-    elif temp_label=="负面":
+    elif temp_label=="negative":
         label=0
     else:
         label=1
@@ -88,7 +88,7 @@ ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels
 ax.set_xlabel('Predicted labels')
 ax.set_ylabel('y_test labels')
 ax.set_title('Confusion Matrix')
-plt.savefig("./DataSet/BERT未微调")
+plt.savefig("./DataSet/BERT_not_fine_tuned")
 plt.show()
 
 
@@ -117,6 +117,7 @@ def weighted_f1_score(precisions, recalls, weights):
     return f1_score
 
 weighted_f1 = weighted_f1_score(precisions, recalls, weights)
-print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
-print(f"准确率: {accuracy:.4f}\nF1值：{f1:.4f}")
-print(f"加权F1值:{weighted_f1:.4f}\n")
+print(f"Recall: {recall:.4f}\nPrecision: {precision:.4f}")
+print(f"Accuracy: {accuracy:.4f}\nF1 score：{f1:.4f}")
+print(f"WeightedF1 score:{weighted_f1:.4f}\n")
+

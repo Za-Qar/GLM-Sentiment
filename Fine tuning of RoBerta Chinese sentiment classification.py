@@ -29,7 +29,7 @@ def load_sentence_polarity(data_path, train_ratio=0.8):
     # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
-    data = df.drop(labels=['发布时间', '内容', '日期','标题'], axis=1)
+    data = df.drop(labels=['publish_time', 'content', 'date','title'], axis=1)
 
     sent=""
     polar=""
@@ -45,11 +45,11 @@ def load_sentence_polarity(data_path, train_ratio=0.8):
             if number%2==0:
                 sent = value
             else:
-                if value == "正面":
+                if value == "positive":
                     polar = 2
-                elif value == "负面":
+                elif value == "negative":
                     polar = 0
-                elif value == "中性":
+                elif value == "neutral":
                     polar = 1
             categories.add(polar)
         all_data.append((polar, sent))
@@ -137,7 +137,7 @@ def compute_loss(model, dataloader, criterion, device):
 batch_size = 3
 num_epoch = 2  # Number of training epochs
 check_step = 1  # Used for mid-training checks: test and save every check_step epochs.
-data_path = "./DataSet/中国石油130条数据.csv"  # Dataset path
+data_path = "./DataSet/China_Petroleum_130_records.csv"  # Dataset path
 train_ratio = 0.7  # Training set ratio
 learning_rate = 1e-5  # Optimizer learning rate
 
@@ -221,7 +221,7 @@ plt.ylabel('Loss')
 plt.yticks([0,0.2,0.4,0.6,0.8,1])
 plt.grid()
 plt.legend() #Add legend
-plt.savefig("./DataSet/微调RoBERTa_LOSS")
+plt.savefig("./DataSet/FineTuned_RoBERTa_LOSS")
 plt.show()
 
 
@@ -239,7 +239,7 @@ def load_test(data_path):
     # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
-    data = df.drop(labels=['发布时间', '内容', '日期','标题'], axis=1)
+    data = df.drop(labels=['publish_time', 'content', 'date','title'], axis=1)
 
     sent=""
     polar=""
@@ -255,17 +255,17 @@ def load_test(data_path):
             if number%2==0:
                 sent = value
             else:
-                if value == "正面":
+                if value == "positive":
                     polar = 2
-                elif value == "负面":
+                elif value == "negative":
                     polar = 0
-                elif value == "中性":
+                elif value == "neutral":
                     polar = 1
             categories.add(polar)
         all_data.append((polar, sent))
     test_data = all_data
     return test_data
-data_path = "./DataSet/新闻全文_已标注.csv"  # Dataset path
+data_path = "./DataSet/news_full_text_labeled.csv"  # Dataset path
 test_data = load_test(data_path=data_path)
 
 test_dataset = RoBERTaDataset(test_data)
@@ -313,7 +313,7 @@ ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels
 ax.set_xlabel('Predicted labels')
 ax.set_ylabel('True labels')
 ax.set_title('Confusion Matrix')
-plt.savefig("./DataSet/微调的RoBERTa")
+plt.savefig("./DataSet/FineTuned_RoBERTa")
 plt.show()
 
 
@@ -339,6 +339,7 @@ def weighted_f1_score(precisions, recalls, weights):
     return f1_score
 
 weighted_f1 = weighted_f1_score(precisions, recalls, weights)
-print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
-print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
-print(f"加权F1值:{weighted_f1:.4f}\n")
+print(f"Recall: {recall:.4f}\nPrecision: {precision:.4f}")
+print(f"Accuracy: {accuracy:.4f}\nF1 score：{f1_micro:.4f}")
+print(f"WeightedF1 score:{weighted_f1:.4f}\n")
+

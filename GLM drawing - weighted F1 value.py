@@ -18,9 +18,9 @@ random.seed(seed)  # Set Python built-in random seed
 # print(pred20,len(feature_data))
 
 
-filePath="./DataSet/新闻全文_已标注.csv"
+filePath="./DataSet/news_full_text_labeled.csv"
 df=pd.read_csv(filePath,encoding="UTF-8")
-data=df.drop(labels=['标题','发布时间','内容','日期'],axis=1)
+data=df.drop(labels=['title','publish_time','content','date'],axis=1)
 
 recallss=[]
 precisionss=[]
@@ -32,7 +32,7 @@ paths=["GLM3-1-10jis.csv","GLM3-2jis .csv","GLM2-2jis.csv","GLM3-5json (1).csv",
 #
 for path in paths:
     pred20=pd.read_csv('News/'+path, encoding='utf-8')
-    pred20=pred20.drop(labels=['条目'],axis=1)
+    pred20=pred20.drop(labels=['item'],axis=1)
     # Alternative: drop index and selected vote columns if needed.
 
     #'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T'
@@ -41,28 +41,28 @@ for path in paths:
     # print(pred.iloc[:, :-1])
     df=pred.iloc[:, :-1]
     for i in range(0,length):
-        counts = {"正面": 0, "负面": 0, "中性": 0}  # Initialize counters
+        counts = {"positive": 0, "negative": 0, "neutral": 0}  # Initialize counters
         for value in pred20.iloc[i, :-1]:
-            if value[0:2]== "正面":
-                counts["正面"] += 1
-            elif value[0:2] == "负面":
-                counts["负面"] += 1
-            elif value[0:2] == "中性":
-                counts["中性"] += 1
+            if value[0:2]== "positive":
+                counts["positive"] += 1
+            elif value[0:2] == "negative":
+                counts["negative"] += 1
+            elif value[0:2] == "neutral":
+                counts["neutral"] += 1
             else:
                 continue
         # print(counts)
-        if counts["正面"]>counts["负面"] and counts["正面"]>counts["中性"]:
-            pred20.loc[i,"标签"]="正面"
-        elif counts["负面"]>counts["正面"] and counts["负面"]>counts["中性"]:
-            pred20.loc[i,"标签"]="负面"
+        if counts["positive"]>counts["negative"] and counts["positive"]>counts["neutral"]:
+            pred20.loc[i,"label"]="positive"
+        elif counts["negative"]>counts["positive"] and counts["negative"]>counts["neutral"]:
+            pred20.loc[i,"label"]="negative"
         else :
-            pred20.loc[i,"标签"]="中性"
-    predicted_labels=pred20["标签"]
-    test_y=data["标签"]
+            pred20.loc[i,"label"]="neutral"
+    predicted_labels=pred20["label"]
+    test_y=data["label"]
 
     # Calculate accuracy
-    accuracy=np.sum(data["标签"]==pred20["标签"])/length
+    accuracy=np.sum(data["label"]==pred20["label"])/length
 
     # Calculate F1 score
     f1_micro = f1_score(test_y, predicted_labels, average='weighted')
@@ -77,15 +77,15 @@ for path in paths:
     true=[]
     pred=[]
     for i in range(length):
-        if data["标签"][i]=="负面":
+        if data["label"][i]=="negative":
             true.append(0)
-        elif data["标签"][i]=="中性":
+        elif data["label"][i]=="neutral":
             true.append(1)
-        elif data["标签"][i]=="正面":
+        elif data["label"][i]=="positive":
             true.append(2)
-        if pred20.loc[i,"标签"]=="负面":
+        if pred20.loc[i,"label"]=="negative":
             pred.append(0)
-        elif pred20.loc[i,"标签"]=="正面":
+        elif pred20.loc[i,"label"]=="positive":
             pred.append(2)
         else:
             pred.append(1)
@@ -163,9 +163,9 @@ for path in paths:
     # Calculate F1 score
     weighted_f1 = weighted_f1_score(precisions, recalls, weights)
     print(path)
-    print(f"召回率: {recall*100:.2f}%\n精确率: {precision*100:.2f}%")
-    print(f"准确率: {accuracy*100:.2f}%\nF1值：{f1_micro*100:.2f}%")
-    print(f"加权F1值:{weighted_f1*100:.2f}%\n")
+    print(f"Recall: {recall*100:.2f}%\nPrecision: {precision*100:.2f}%")
+    print(f"Accuracy: {accuracy*100:.2f}%\nF1 score：{f1_micro*100:.2f}%")
+    print(f"WeightedF1 score:{weighted_f1*100:.2f}%\n")
     recallss.append(round(recall*100,2))
     precisionss.append(round(precision*100,2))
     accuracys.append(round(accuracy*100,2))

@@ -11,17 +11,17 @@ model = AutoModelForSequenceClassification.from_pretrained(href)
 tokenizer = AutoTokenizer.from_pretrained(href)
 classifier = pipeline('sentiment-analysis', model=model, tokenizer=tokenizer)
 
-data=pd.read_csv("./DataSet/新闻全文_已标注.csv",encoding="UTF-8")
+data=pd.read_csv("./DataSet/news_full_text_labeled.csv",encoding="UTF-8")
 data_length=len(data)
 predicted_labels=[]
-test_y=data["标签"]
+test_y=data["label"]
 for i in range(0,data_length):
-    text=data["新闻全文"][i]
+    text=data["news_full_text"][i]
     text_length=len(text)
     if text_length>=512:
         text=text[:128]+text[-382:]
     label = classifier(text)[0]['label']
-    print("第"+str(i+1)+"个标签："+label)
+    print("No."+str(i+1)+" label："+label)
     predicted_labels.append(label)
 true_labels=[]
 for i in range(data_length):
@@ -34,11 +34,11 @@ for i in range(data_length):
     elif pred_label == "positive":
         predicted_labels[i]=2
 
-    if true_label == "负面":
+    if true_label == "negative":
         true_labels.append(0)
-    elif true_label == "中性":
+    elif true_label == "neutral":
         true_labels.append(1)
-    elif true_label == "正面":
+    elif true_label == "positive":
         true_labels.append(2)
 print(type(predicted_labels),type(true_labels))
 
@@ -50,8 +50,8 @@ f1_micro = f1_score(true_labels, predicted_labels, average='weighted')
 recall = recall_score(true_labels, predicted_labels, average='weighted')  # You can choose other average settings.
 # Calculate precision
 precision = precision_score(true_labels, predicted_labels, average='weighted')  # You can choose other average settings.
-print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
-print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
+print(f"Recall: {recall:.4f}\nPrecision: {precision:.4f}")
+print(f"Accuracy: {accuracy:.4f}\nF1 score：{f1_micro:.4f}")
 
 #Confusion matrix
 labels=["Bearish","Neutral","Bullish"]
@@ -65,7 +65,7 @@ ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels
 ax.set_xlabel('Predicted labels')
 ax.set_ylabel('True labels')
 ax.set_title('Confusion Matrix')
-plt.savefig("./DataSet/未微调的RoBERTa")
+plt.savefig("./DataSet/NotFineTuned_RoBERTa")
 plt.show()
 
 precisions = []  # Precision for the 3 classes
@@ -89,4 +89,4 @@ def weighted_f1_score(precisions, recalls, weights):
     return f1_score
 
 weighted_f1 = weighted_f1_score(precisions, recalls, weights)
-print(f"加权F1值:{weighted_f1:.4f}\n")
+print(f"WeightedF1 score:{weighted_f1:.4f}\n")

@@ -22,14 +22,14 @@ from pylab import mpl
 tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm3-6b", trust_remote_code=True)
 model = AutoModel.from_pretrained("THUDM/chatglm3-6b", trust_remote_code=True, device='cuda')
 model = model.eval()
-print("正在运行")
-response, history = model.chat(tokenizer, "你好", history=[])
+print("Running")
+response, history = model.chat(tokenizer, "Hello", history=[])
 print(response)
 
 print("label")
-filePath = "./DataSet/新闻全文_已标注.csv"
+filePath = "./DataSet/news_full_text_labeled.csv"
 df = pd.read_csv(filePath, encoding="UTF-8")
-data = df.drop(labels=['发布时间', '内容', '日期'], axis=1)
+data = df.drop(labels=['publish_time', 'content', 'date'], axis=1)
 name = "GLM3-5json"
 pred20 = pd.DataFrame(columns=list('ABCDEFGHIJKLMNOPQRST'))
 # ABCDEFGHIJKLMNOPQRST
@@ -38,61 +38,61 @@ feature_length = len(features)
 data_length = len(data)
 # Run 20 GLM question-answer rounds
 for i in range(0, feature_length):
-    print("第" + str(i + 1) + "次提问")
+    print("No." + str(i + 1) + " query round")
     for j in range(0, data_length):
-        background = "中国石油化工股份有限公司的产品主要包括原油、天然气、化纤、化肥、橡胶、成品油等。其竞争对手主要包括其他大型国有石油和化工企业，以及一些国际上的能源和化工巨头。金融新闻对股票市场的影响是复杂而多样的。新闻中的积极或消极或中性信息会引发投资者的情绪波动。\
-        积极的新闻能提高投资者的信心，促使他们更倾向于购买股票，从而推动股价上涨；\
-        消极的新闻则会引发恐慌情绪，导致投资者纷纷抛售股票，进而导致股价下跌；\
-        中性的新闻则没有明显的积极或消极情绪倾向，被投资者视为市场的常态或者暂时性的平静状态，但投资者会将这些信息作为参考做出投资决策。在这种情况下，投资者会保持观望态度，维持现有的持仓或采取谨慎的交易策略，而不会急于大规模买入或抛售股票，在一定程度上维持市场的平稳状态。\
-        同时，融资的买入消息和卖出消息在金融市场中具有重要意义。\
-        当融资买入规模较大、用途有利于公司发展或市场情绪乐观时，通常被视为积极消息，可能推动股价上涨。\
-        相反，如果融资买入规模较小、用途不利于公司发展或市场情绪悲观，可能被视为消极消息，导致股价下跌。\
-        而当融资买入规模适中、用途一般或市场整体趋势稳定时，融资的买入和卖出可能被视为中性消息，股价波动较为平稳。\
-        当融资的卖出规模较大、用途符合公司战略或市场情绪乐观时，可能被视为积极消息，因为这可能意味着公司获得了资金用于扩张或投资，从而提升投资者信心，推动股价上涨。\
-        相反，如果融资的卖出规模较小、用途不明确或市场情绪悲观，可能被视为消极消息，可能引发投资者对公司未来发展的担忧，导致股价下跌。\
-        当融资的卖出规模适中、用途一般或市场整体趋势稳定时，融资的卖出可能被视为中性消息，股价波动较为平稳。"
-        content = "知识背景：" + background + "以下是三个样本：\
-        新闻内容：'''3月25日，中国石化（600028）举行2023年度业绩说明会。中国石化董事长马永生回应中国石化2023年净利润出现下滑称，2023年，国际原油价格总体呈震荡下行走势，同比下降18.4%，境内化工市场供过于求、毛利仍处于低位。面对挑战，公司全方位优化生产经营，大力协同攻坚创效，强化成本费用管控，推动全产业链提质增效，取得了来之不易的经营成果。马永生表示，公司净利润同比下降，主要是受库存变动减利以及计提矿业权出让收益等影响。若将以上因素剔除，同口径利润是大幅改善的。'''，分析：\
+        background = "China Petroleum & Chemical Corporation (Sinopec) mainly produces crude oil, natural gas, synthetic fibers, fertilizers, rubber, and refined petroleum products. Its competitors include other large state-owned oil and chemical companies and international energy and chemical giants. The impact of financial news on the stock market is complex and diverse. Positive, negative, or neutral information in the news can trigger investor sentiment fluctuations.\
+        Positive news can increase investor confidence, making them more inclined to buy stocks and thereby pushing stock prices up;\
+        Negative news can trigger panic sentiment, causing investors to sell stocks and leading to falling prices;\
+        Neutral news has no obvious positive or negative sentiment tendency and is viewed by investors as normal market conditions or temporary calm. Investors use this information as reference for decisions. In such cases, investors often remain cautious, maintain existing positions, or adopt prudent strategies rather than rush to buy or sell in large quantities, which helps keep the market relatively stable.\
+        At the same time, financing-related buy and sell messages are important in financial markets.\
+        When financing buy volume is large, used in ways favorable to company development, or market sentiment is optimistic, it is usually seen as positive news and may push stock prices up.\
+        Conversely, if financing buy volume is small, used in ways unfavorable to company development, or market sentiment is pessimistic, it may be viewed as negative news and lead to falling prices.\
+        When financing buy volume is moderate, usage is ordinary, or the overall market trend is stable, financing buy and sell activity may be viewed as neutral news, and stock-price movements tend to be steadier.\
+        When financing sell volume is large, usage aligns with company strategy, or market sentiment is optimistic, it may be viewed as positive news because it can imply the company obtained funds for expansion or investment, boosting investor confidence and pushing prices up.\
+        Conversely, if financing sell volume is small, usage is unclear, or market sentiment is pessimistic, it may be viewed as negative news, raising investor concerns about the company’s future development and causing prices to fall.\
+        When financing sell volume is moderate, usage is ordinary, or the overall market trend is stable, financing sell activity may be seen as neutral news and stock-price fluctuations are relatively stable."
+        content = "Background knowledge：" + background + "Here are three samples：\
+        News content:'''On March 25, Sinopec (600028) held its 2023 annual performance briefing. Chairman Ma Yongsheng responded to the decline in 2023 net profit, noting that international crude oil prices fluctuated downward overall in 2023, down 18.4% year-on-year, while the domestic chemical market was oversupplied and margins remained low. Facing these challenges, the company optimized operations across the board, strengthened coordination for efficiency gains, tightened cost control, and improved quality and efficiency across the whole value chain, achieving hard-won results. Ma Yongsheng stated that the year-on-year decline in net profit was mainly due to inventory-change effects and accrued mining-right transfer income. Excluding these factors, profit on a comparable basis improved significantly.''', Analysis:\
         {\
-        主体：中国石化\
-        事件：3月25日，中国石化举行2023年度业绩说明会，董事长马永生回应2023年净利润下滑情况。\
-        影响：尽管净利润同比下降，但马永生解释了下降原因并提到公司在优化生产经营和成本管控方面取得的成果。若剔除一些不利因素，公司的同口径利润有明显改善。\
-        情绪：中性\
+        Entity:Sinopec\
+        Event:On March 25, Sinopec held its 2023 annual performance briefing, and Chairman Ma Yongsheng addressed the decline in 2023 net profit.\
+        Impact:Although net profit declined year-on-year, Ma Yongsheng explained the reasons and highlighted achievements in operational optimization and cost control. Excluding certain unfavorable factors, comparable-basis profit improved noticeably.\
+        Sentiment：neutral\
         }；\
-       新闻内容： '''证券之星消息，中国石化2023年年报显示，公司主营收入32122.15亿元，同比下降3.19%；归母净利润604.63亿元，同比下降9.87%；扣非净利润602.34亿元，同比上升3.92%；其中2023年第四季度，公司单季度主营收入7422.74亿元，同比下降14.17%；单季度归母净利润74.97亿元，同比下降23.79%；单季度扣非净利润99.55亿元，同比上升417.14%；负债率52.7%，投资收益58.11亿元，财务费用99.22亿元，毛利率15.65%。'''，分析：\
+       News content: '''According to Securities Star, Sinopec’s 2023 annual report showed operating revenue of 3,212.215 billion yuan, down 3.19% year-on-year; net profit attributable to parent of 60.463 billion yuan, down 9.87% year-on-year; and non-recurring-adjusted net profit of 60.234 billion yuan, up 3.92% year-on-year. In Q4 2023, quarterly operating revenue was 742.274 billion yuan, down 14.17%; quarterly net profit attributable to parent was 7.497 billion yuan, down 23.79%; and quarterly non-recurring-adjusted net profit was 9.955 billion yuan, up 417.14%. Debt ratio was 52.7%, investment income 5.811 billion yuan, financial expenses 9.922 billion yuan, and gross margin 15.65%.''', Analysis:\
         {\
-        主体： 中国石化\
-        事件： 中国石化发布2023年年报，显示公司主营收入和归母净利润同比下降，扣非净利润同比上升；第四季度主营收入和归母净利润同比下降，扣非净利润同比大幅上升。\
-        影响： 尽管扣非净利润有所上升，但主营收入和归母净利润的下降反映出公司面临的经营压力和挑战。此外，较高的负债率也可能给公司未来的财务状况带来负面影响。总体来看，年报反映出公司在当前市场环境下的经营困境。\
-        情绪： 负面\
+        Entity： Sinopec\
+        Event: Sinopec released its 2023 annual report, showing year-on-year declines in operating revenue and attributable net profit, while non-recurring-adjusted net profit increased year-on-year; in Q4, operating revenue and attributable net profit declined year-on-year, while non-recurring-adjusted net profit rose sharply.\
+        Impact: Although non-recurring-adjusted net profit increased, declines in operating revenue and attributable net profit indicate operating pressure and challenges. In addition, a relatively high debt ratio may negatively affect the company’s future financial condition. Overall, the annual report reflects operational difficulties under the current market environment.\
+        Sentiment： negative\
         }；\
-        新闻内容：'''3月13日，中国石化与宁德时代新能源科技股份有限公司在北京签署战略合作框架协议。双方表示，将进一步深化战略合作，拓宽合作领域，延伸产业链条，加快转型升级步伐，推动双方合作迈上新台阶。'''，分析：\
+        News content:'''On March 13, Sinopec and Contemporary Amperex Technology Co., Limited (CATL) signed a strategic cooperation framework agreement in Beijing. Both parties stated they will further deepen strategic cooperation, broaden cooperation areas, extend the industrial chain, accelerate transformation and upgrading, and bring cooperation to a new level.''', Analysis:\
         {\
-        主体： 中国石化\
-        事件： 中国石化与宁德时代新能源科技股份有限公司在北京签署战略合作框架协议。\
-        影响： 此次合作协议的签署表明两家公司将进一步深化战略合作，拓宽合作领域，延伸产业链条，加快转型升级步伐，这有望推动双方在各自领域实现更大的发展和创新，提升市场竞争力和投资者信心。\
-        情绪： 正面\
+        Entity： Sinopec\
+        Event: Sinopec and CATL signed a strategic cooperation framework agreement in Beijing.\
+        Impact: Signing this agreement indicates deeper strategic cooperation, broader cooperation fields, extended industrial chains, and faster transformation and upgrading, which is expected to drive greater development and innovation in both companies’ respective fields, and enhance market competitiveness and investor confidence.\
+        Sentiment： positive\
         }。\
-        请你扮演金融新闻情绪分类的专家，参考上述样本案例，结合上文提供的知识背景按照jis格式（主体、事件、影响、情绪）分析下文三引号中的新闻内容传达了什么情绪？是正面、负面还是中性的？如果无法判断新闻内容表达的情绪，默认答案为中性。输出jis格式如下：\
+        Please act as an expert in financial-news sentiment classification. Refer to the sample cases above and the background knowledge to analyze the sentiment conveyed by the news content in triple quotes below using JSON fields (Entity, Event, Impact, Sentiment). Determine whether it is positive, negative, or neutral. If the sentiment cannot be determined, default to neutral. Output JSON in the following format:\
         {\
-        主体：中国石化\
-        事件：\
-        影响：\
-        情绪：\
+        Entity:Sinopec\
+        Event：\
+        Impact：\
+        Sentiment：\
         }\
-        新闻内容：‘’‘" + data["新闻全文"][j] + "’‘’，分析："
+        News content:'''" + data["news_full_text"][j] + "''', Analysis:"
 
         response, history = model.chat(tokenizer, content, history=[])
         # Use regex to match the "sentiment" field
-        emotion = re.search(r'情绪：(.+)', response)
+        emotion = re.search(r'Sentiment：(.+)', response)
         if emotion == None:
-            emotion = re.search(r'情绪:(.+)', response)
+            emotion = re.search(r'Sentiment:(.+)', response)
         if emotion != None:
             pred20.loc[j, features[i]] = emotion.group(1).strip()
         else:
-            pred20.loc[j, features[i]] = "中性"
+            pred20.loc[j, features[i]] = "neutral"
         if j % 40 == 0:
-            print("第" + str(j) + "条数据")
+            print("No." + str(j) + " records")
             print(response, emotion)
 
 # filePath="/kaggle/input/full-text-news/_.csv"
@@ -103,52 +103,52 @@ for i in range(0, feature_length):
 # import sys
 sys.path.append("../output")
 pred20 = pred20.reset_index(drop=True)
-pred20.to_csv('/kaggle/working/' + name + '.csv', index_label="条目")
+pred20.to_csv('/kaggle/working/' + name + '.csv', index_label="item")
 # print("label")
 
 
 for i in range(0,data_length):
-    counts = {"正面": 0, "负面": 0, "中性": 0}  # Initialize counters
+    counts = {"positive": 0, "negative": 0, "neutral": 0}  # Initialize counters
     for value in pred20.iloc[i, :-1]:
         value=value[:2]
 #         print(value)
-        if value== "正面" or value=="上涨"  or value=="积极":
-            counts["正面"] += 1
-        elif value == "负面" or value=="下跌":
-            counts["负面"] += 1
-        elif value == "中性" or value=="融资" or value=="无法" or value=="稳定":
-            counts["中性"] += 1
-    if counts["正面"]>counts["负面"] and counts["正面"]>counts["中性"]:
-        pred20.loc[i,"标签"]="正面"
-    elif counts["负面"]>counts["正面"] and counts["负面"]>counts["中性"]:
-        pred20.loc[i,"标签"]="负面"
+        if value== "positive" or value=="rise"  or value=="positive":
+            counts["positive"] += 1
+        elif value == "negative" or value=="fall":
+            counts["negative"] += 1
+        elif value == "neutral" or value=="financing" or value=="unable" or value=="stable":
+            counts["neutral"] += 1
+    if counts["positive"]>counts["negative"] and counts["positive"]>counts["neutral"]:
+        pred20.loc[i,"label"]="positive"
+    elif counts["negative"]>counts["positive"] and counts["negative"]>counts["neutral"]:
+        pred20.loc[i,"label"]="negative"
     else :
-        pred20.loc[i,"标签"]="中性"
-predicted_labels=pred20["标签"]
-test_y=data["标签"]
+        pred20.loc[i,"label"]="neutral"
+predicted_labels=pred20["label"]
+test_y=data["label"]
 # Calculate accuracy
-accuracy=np.sum(data["标签"]==pred20["标签"])/data_length
+accuracy=np.sum(data["label"]==pred20["label"])/data_length
 # Calculate F1 score
 f1_micro = f1_score(test_y, predicted_labels, average='weighted')
 # Calculate recall
 recall = recall_score(test_y, predicted_labels, average='weighted')  # You can choose other average settings.
 # Calculate precision
 precision = precision_score(test_y, predicted_labels, average='weighted')  # You can choose other average settings.
-print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
-print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
+print(f"Recall: {recall:.4f}\nPrecision: {precision:.4f}")
+print(f"Accuracy: {accuracy:.4f}\nF1 score：{f1_micro:.4f}")
 
 true=[]
 pred=[]
 for i in range(data_length):
-    if data["标签"][i]=="负面":
+    if data["label"][i]=="negative":
         true.append(0)
-    elif data["标签"][i]=="中性":
+    elif data["label"][i]=="neutral":
         true.append(1)
-    elif data["标签"][i]=="正面":
+    elif data["label"][i]=="positive":
         true.append(2)
-    if pred20.loc[i,"标签"]=="负面":
+    if pred20.loc[i,"label"]=="negative":
         pred.append(0)
-    elif pred20.loc[i,"标签"]=="正面":
+    elif pred20.loc[i,"label"]=="positive":
         pred.append(2)
     else:
         pred.append(1)
@@ -167,5 +167,5 @@ ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels
 ax.set_xlabel('Predicted labels')
 ax.set_ylabel('True labels')
 ax.set_title('Confusion Matrix')
-plt.savefig("./DataSet/新闻全文_已标注.png")
+plt.savefig("./DataSet/news_full_text_labeled.png")
 plt.show()
