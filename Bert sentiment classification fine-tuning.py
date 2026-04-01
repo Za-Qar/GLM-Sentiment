@@ -18,27 +18,27 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 import warnings
 warnings.filterwarnings("ignore")
 seed = 5
-torch.manual_seed(seed)  # 设置 PyTorch 的随机种子
-torch.cuda.manual_seed_all(seed)  # 设置所有 GPU 的随机种子
-np.random.seed(seed)  # 设置 NumPy 的随机种子
-random.seed(seed)  # 设置 Python 自带的随机种子
-# 设置transformers模块的日志等级，减少不必要的警告，对训练过程无影响，请忽略
+torch.manual_seed(seed)  # Set PyTorch random seed
+torch.cuda.manual_seed_all(seed)  # Set random seed for all GPUs
+np.random.seed(seed)  # Set NumPy random seed
+random.seed(seed)  # Set Python built-in random seed
+# Set transformers logging level to reduce unnecessary warnings; this does not affect training.
 logging.set_verbosity_error()
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
-# 通过继承nn.Module类自定义符合自己需求的模型
+# Define a custom model by inheriting nn.Module.
 class BertSST2Model(nn.Module):
 
-    # 初始化类
+    # Initialize class
     def __init__(self, class_size, pretrained_name='bert-base-chinese'):
         """
         Args:
             class_size  :指定分类模型的最终类别数目，以确定线性分类器的映射维度
             pretrained_name :用以指定bert的预训练模型
         """
-        # 类继承的初始化，固定写法
+        # Superclass initialization (standard pattern).
         super(BertSST2Model, self).__init__()
 
         self.bert = BertModel.from_pretrained(pretrained_name,
@@ -50,7 +50,7 @@ class BertSST2Model(nn.Module):
 
         input_ids, input_tyi, input_attn_mask = inputs['input_ids'], inputs[
             'token_type_ids'], inputs['attention_mask']
-        # 将三者输入进模型，如果想知道模型内部如何运作，前面的蛆以后再来探索吧~
+        # Feed these three inputs into the model.
         output = self.bert(input_ids, input_tyi, input_attn_mask)
 
 
@@ -59,7 +59,7 @@ class BertSST2Model(nn.Module):
 
 
 def save_pretrained(model, path):
-    # 保存模型，先利用os模块创建文件夹，后利用torch.save()写入模型文件
+    # Save model: create directory with os, then write model file with torch.save().
     os.makedirs(path, exist_ok=True)
     torch.save(model, os.path.join(path, 'model.pth'))
 
@@ -67,7 +67,7 @@ def save_pretrained(model, path):
 def load_sentence_polarity(data_path, train_ratio=0.7):
 
     all_data = []
-    # categories用于统计分类标签的总数，用set结构去重
+    # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
     data = df.drop(labels=['发布时间', '内容', '日期'], axis=1)
@@ -77,11 +77,11 @@ def load_sentence_polarity(data_path, train_ratio=0.7):
     for i in range(0, len(data)):
         number=0
         for value in data.iloc[i, 1:]:
-            # polar指情感的类别：
+            # polar is the sentiment class:
             #   ——2：positive
             #   ——1：neutral
             #   ——0：negative
-            # sent指对应的句子
+            # sent is the corresponding sentence.
             number+=1
             if number%2==0:
                 sent = value
@@ -116,18 +116,18 @@ class BertDataset(Dataset):
         return self.dataset[index]
 def sliding_window(sentence, window_size=512, stride=400):
 
-    # 切分后的子句列表
+    # List of split sub-sentences
     sub_sentences = []
-    # 句子长度
+    # Sentence length
     length = len(sentence)
-    # 开始滑动窗口
+    # Start sliding window
     start = 0
     while start < length:
-        # 计算当前窗口的结束位置
+        # Compute end position of current window
         end = min(start + window_size, length)
-        # 切分子句并加入列表
+        # Split sub-sentence and append to list
         sub_sentences.append(sentence[start:end])
-        # 滑动窗口
+        # Slide window
         start += stride
     return sub_sentences
 
@@ -135,14 +135,14 @@ def sliding_window(sentence, window_size=512, stride=400):
 def coffate_fn(examples):
     inputs, targets = [], []
     for polar, sent in examples:
-        # 如果句子长度超过512，则进行滑动窗口切分处理
+        # If sentence length exceeds 512, apply sliding-window preprocessing.
         if len(sent) > 512:
-            # # 使用滑动窗口切分句子
+            # # Split sentence with a sliding window
             # sub_sentences = sliding_window(sent)
             # inputs.extend(sub_sentences)
             # targets.extend([int(polar)] * len(sub_sentences))
 
-            # 如果句子长度超过512，选择前128个token和后382个token
+            # If sentence length exceeds 512, keep first 128 and last 382 tokens.
             input_text = sent[:128] + sent[-382:]
             inputs.append(input_text)
             targets.append(int(polar))
@@ -161,9 +161,9 @@ def coffate_fn(examples):
     return input_dict, targets
 
 
-# 训练准备阶段，设置超参数和全局变量
+# Training setup: define hyperparameters and global variables.
 
-#计算验证集损失函数
+#Compute validation-set loss
 def compute_loss(model, dataloader, criterion, device):
     model.eval()
     total_loss = 0.0
@@ -177,15 +177,15 @@ def compute_loss(model, dataloader, criterion, device):
 
 
 batch_size = 4
-num_epoch = 2  # 训练轮次
-check_step = 1  # 用以训练中途对模型进行检验：每check_step个epoch进行一次测试和保存模型
-data_path = "./DataSet/中国石油130条数据.csv"  # 数据所在地址
-train_ratio = 0.7  # 训练集比例
-learning_rate = 1e-5  # 优化器的学习率
+num_epoch = 2  # Number of training epochs
+check_step = 1  # Used for mid-training checks: test and save every check_step epochs.
+data_path = "./DataSet/中国石油130条数据.csv"  # Dataset path
+train_ratio = 0.7  # Training set ratio
+learning_rate = 1e-5  # Optimizer learning rate
 
-# 获取训练、测试数据、分类类别总数
+# Load training/testing data and number of classes
 train_data, test_data, categories = load_sentence_polarity(data_path=data_path, train_ratio=train_ratio)
-# 将训练数据和测试数据的列表封装成Dataset以供DataLoader加载
+# Wrap train/test lists into Dataset objects for DataLoader.
 train_dataset = BertDataset(train_data)
 test_dataset = BertDataset(test_data)
 
@@ -197,62 +197,62 @@ test_dataloader = DataLoader(test_dataset,
                              batch_size=1,
                              collate_fn=coffate_fn)
 print(len(test_dataloader),len(test_dataset))
-#固定写法，可以牢记，cuda代表Gpu
-# torch.cuda.is_available()可以查看当前Gpu是否可用
+#Standard pattern: cuda represents GPU.
+# Use torch.cuda.is_available() to check GPU availability.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 加载预训练模型，因为这里是中文数据集，需要用在中文上的预训练模型：bert-base-chinese
+# Load pretrained model for Chinese data: bert-base-chinese.
 
 pretrained_model_name = 'bert-base-chinese'
-# 创建模型 BertSST2Model
+# Create BertSST2Model
 model = BertSST2Model(len(categories), pretrained_model_name)
 
 model.to(device)
-# 加载预训练模型对应的tokenizer
+# Load tokenizer matching the pretrained model
 tokenizer = BertTokenizer.from_pretrained(pretrained_model_name)
 
 
-optimizer = Adam(model.parameters(), learning_rate)  #使用Adam优化器
-CE_loss = nn.CrossEntropyLoss()  # 使用crossentropy作为三分类任务的损失函数
+optimizer = Adam(model.parameters(), learning_rate)  #Use Adam optimizer
+CE_loss = nn.CrossEntropyLoss()  # Use cross-entropy loss for three-class classification
 
-# 记录当前训练时间，用以记录日志和存储
+# Record current time for logging and saving
 timestamp = time.strftime("%m_%d_%H_%M", time.localtime())
 
-# 开始训练，model.train()固定写法
+# Start training (model.train() standard usage).
 model.train()
 train_loss=[]
 validate_loss=[]
 for epoch in range(1, num_epoch + 1):
-    # 记录当前epoch的总loss
+    # Track total loss for current epoch
     total_loss = 0
-    # tqdm用以观察训练进度，在console中会打印出进度条
+    # Use tqdm to show training progress bar in the console.
     for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch}"):
 
         inputs, targets = [x.to(device) for x in batch]
 
-        # 清除现有的梯度
+        # Clear existing gradients
         optimizer.zero_grad()
 
-        # 模型前向传播，model(inputs)等同于model.forward(inputs)
+        # Forward pass; model(inputs) is equivalent to model.forward(inputs).
         bert_output = model(inputs)
 
-        # 计算损失，交叉熵损失计算可参考：https://zhuanlan.zhihu.com/p/159477597
+        # Compute loss (cross entropy).
         loss = CE_loss(bert_output, targets)
 
-        # 梯度反向传播
+        # Backpropagate gradients
         loss.backward()
 
-        # 根据反向传播的值更新模型的参数
+        # Update model parameters using backpropagated gradients
         optimizer.step()
 
-        # 统计总的损失，.item()方法用于取出tensor中的值
+        # Accumulate total loss; .item() extracts scalar value from tensor.
         total_loss += loss.item()
     train_loss.append(total_loss / len(train_dataloader))
-    # 在验证集上计算损失函数
+    # Compute loss on validation set
     val_loss = compute_loss(model, test_dataloader, CE_loss, device)
     validate_loss.append(val_loss)
 
-#绘损失图
+#Plot loss curves
 g1=plt.figure()
 plt.plot(train_loss,color='r', label='train_loss')
 plt.plot(validate_loss,color='g', label='validate_loss')
@@ -261,13 +261,13 @@ plt.xlabel('Epoch#')
 plt.ylabel('Loss')
 plt.yticks([0,0.2,0.4,0.6,0.8,1])
 plt.grid()
-plt.legend() #添加图例
+plt.legend() #Add legend
 plt.savefig("./DataSet/BERT_LOSS")
 plt.show()
 
 
-#测试过程
-# acc统计模型在测试数据上分类结果中的正确个数
+#Testing phase
+# acc counts correct predictions on test data.
 acc = 0
 tg=0
 true=[]
@@ -275,10 +275,10 @@ pred=[]
 
 
 def load_test(data_path):
-    # 本任务中暂时只用train、test做划分，不包含dev验证集，
-    # train的比例由train_ratio参数指定，train_ratio=0.8代表训练语料占80%，test占20%
+    # This task currently uses only train/test split, without a dev set.
+    # train_ratio controls the split; 0.8 means 80% train and 20% test.
     all_data = []
-    # categories用于统计分类标签的总数，用set结构去重
+    # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
     data = df.drop(labels=['发布时间', '内容', '日期'], axis=1)
@@ -288,11 +288,11 @@ def load_test(data_path):
     for i in range(0, len(data)):
         number=0
         for value in data.iloc[i, 1:]:
-            # polar指情感的类别：
+            # polar is the sentiment class:
             #   ——2：positive
             #   ——1：neutral
             #   ——0：negative
-            # sent指对应的句子
+            # sent is the corresponding sentence.
             number+=1
             if number%2==0:
                 sent = value
@@ -307,7 +307,7 @@ def load_test(data_path):
         all_data.append((polar, sent))
     test_data = all_data
     return test_data
-data_path = "./DataSet/新闻全文_已标注.csv"  # 数据所在地址
+data_path = "./DataSet/新闻全文_已标注.csv"  # Dataset path
 test_data = load_test(data_path=data_path)
 
 test_dataset = BertDataset(test_data)
@@ -317,8 +317,8 @@ test_dataloader = DataLoader(test_dataset,
 
 for batch in tqdm(test_dataloader, desc=f"Testing"):
     inputs, targets = [x.to(device) for x in batch]
-    # with torch.no_grad(): 为固定写法，
-    # 这个代码块中的全部有关tensor的操作都不产生梯度。目的是节省时间和空间，不加也没事
+    # with torch.no_grad() is standard usage here.
+    # Tensor operations in this block do not track gradients, saving time and memory.
     with torch.no_grad():
         bert_output = model(inputs)
 
@@ -327,23 +327,23 @@ for batch in tqdm(test_dataloader, desc=f"Testing"):
         pred.append(preds.item())
         acc += (preds== targets).sum().item()
         tg+=len(targets)
-# 计算准确率
+# Calculate accuracy
 accuracy=acc/tg
-# 计算F1值
+# Calculate F1 score
 f1_micro = f1_score(true, pred, average='weighted')
-# 计算召回率
-recall = recall_score(true, pred, average='weighted')  # 可以选择其他的 average 参数
-# 计算精确度
-precision = precision_score(true, pred, average='weighted')  # 可以选择其他的 average 参数
+# Calculate recall
+recall = recall_score(true, pred, average='weighted')  # You can choose other average settings.
+# Calculate precision
+precision = precision_score(true, pred, average='weighted')  # You can choose other average settings.
 
 
-#混淆矩阵
+#Confusion matrix
 labels=["Bearish","Neutral","Bullish"]
 label=[0,1,2]
 cm = confusion_matrix(true, pred, labels=label)
-# 计算每一行的真实样本数
+# Compute the number of true samples in each row
 row_sums = cm.sum(axis=1, keepdims=True)
-# 将混淆矩阵中的每个元素除以相应的真实样本数，得到概率
+# Divide each confusion-matrix cell by its row total to obtain probabilities.
 cm_prob = cm / row_sums
 ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels, yticklabels=labels)
 ax.set_xlabel('Predicted labels')
@@ -353,9 +353,9 @@ plt.savefig("./DataSet/BERT微调")
 plt.show()
 
 
-precisions = []  # 3个类别对应的精确度
-recalls = []  # 3个类别对应的召回率
-weights = [0.5, 0.3, 0.2]  # 负面类别权重最大，正面类别次之，中性类别最小
+precisions = []  # Precision for the 3 classes
+recalls = []  # Recall for the 3 classes
+weights = [0.5, 0.3, 0.2]  # Negative class has highest weight, positive second, neutral lowest.
 
 for i in range(len(label)):
     tp = cm[i, i]
@@ -367,7 +367,7 @@ for i in range(len(label)):
     recalls.append(temp_recall)
 
 
-# 打印结果
+# Print results
 print("Precisions:", precisions)
 print("Recalls:", recalls)
 

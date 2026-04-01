@@ -42,24 +42,24 @@ for i in range(data_length):
         true_labels.append(2)
 print(type(predicted_labels),type(true_labels))
 
-# 计算准确率
+# Calculate accuracy
 accuracy=sum(1 for x, y in zip(true_labels, predicted_labels) if x == y)/data_length
-# 计算F1值
+# Calculate F1 score
 f1_micro = f1_score(true_labels, predicted_labels, average='weighted')
-# 计算召回率
-recall = recall_score(true_labels, predicted_labels, average='weighted')  # 可以选择其他的 average 参数
-# 计算精确度
-precision = precision_score(true_labels, predicted_labels, average='weighted')  # 可以选择其他的 average 参数
+# Calculate recall
+recall = recall_score(true_labels, predicted_labels, average='weighted')  # You can choose other average settings.
+# Calculate precision
+precision = precision_score(true_labels, predicted_labels, average='weighted')  # You can choose other average settings.
 print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
 print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
 
-#混淆矩阵
+#Confusion matrix
 labels=["Bearish","Neutral","Bullish"]
 label=[0,1,2]
 cm = confusion_matrix(true_labels, predicted_labels, labels=label)
-# 计算每一行的真实样本数
+# Compute the number of true samples in each row
 row_sums = cm.sum(axis=1, keepdims=True)
-# 将混淆矩阵中的每个元素除以相应的真实样本数，得到概率
+# Divide each confusion-matrix cell by its row total to obtain probabilities.
 cm_prob = cm / row_sums
 ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels, yticklabels=labels)
 ax.set_xlabel('Predicted labels')
@@ -68,9 +68,9 @@ ax.set_title('Confusion Matrix')
 plt.savefig("./DataSet/未微调的RoBERTa")
 plt.show()
 
-precisions = []  # 3个类别对应的精确度
-recalls = []  # 3个类别对应的召回率
-weights = [0.5, 0.3, 0.2]  # 负面类别权重最大，正面类别次之，中性类别最小
+precisions = []  # Precision for the 3 classes
+recalls = []  # Recall for the 3 classes
+weights = [0.5, 0.3, 0.2]  # Negative class has highest weight, positive second, neutral lowest.
 
 for i in range(len(label)):
     tp = cm[i, i]

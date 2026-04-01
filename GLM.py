@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_score, recall_score, f1_score
 import seaborn as sns
 seed = 5
-torch.manual_seed(seed)  # 设置 PyTorch 的随机种子
-torch.cuda.manual_seed_all(seed)  # 设置所有 GPU 的随机种子
-np.random.seed(seed)  # 设置 NumPy 的随机种子
-random.seed(seed)  # 设置 Python 自带的随机种子
+torch.manual_seed(seed)  # Set PyTorch random seed
+torch.cuda.manual_seed_all(seed)  # Set random seed for all GPUs
+np.random.seed(seed)  # Set NumPy random seed
+random.seed(seed)  # Set Python built-in random seed
 from pylab import mpl
 
 tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm3-6b", trust_remote_code=True)
@@ -36,7 +36,7 @@ pred20 = pd.DataFrame(columns=list('ABCDEFGHIJKLMNOPQRST'))
 features = pred20.columns
 feature_length = len(features)
 data_length = len(data)
-# 使用GLM进行20次问答
+# Run 20 GLM question-answer rounds
 for i in range(0, feature_length):
     print("第" + str(i + 1) + "次提问")
     for j in range(0, data_length):
@@ -83,7 +83,7 @@ for i in range(0, feature_length):
         新闻内容：‘’‘" + data["新闻全文"][j] + "’‘’，分析："
 
         response, history = model.chat(tokenizer, content, history=[])
-        # 使用正则表达式匹配“情绪”字段
+        # Use regex to match the "sentiment" field
         emotion = re.search(r'情绪：(.+)', response)
         if emotion == None:
             emotion = re.search(r'情绪:(.+)', response)
@@ -97,7 +97,7 @@ for i in range(0, feature_length):
 
 # filePath="/kaggle/input/full-text-news/_.csv"
 # df=pd.read_csv(filePath,encoding="UTF-8")
-# data=df.drop(labels=['发布时间','内容','日期'],axis=1)
+# Example: drop metadata columns before inference.
 # pred20=pd.read_csv('/kaggle/input/pred-label/pred.csv',encoding='utf-8')
 
 # import sys
@@ -108,7 +108,7 @@ pred20.to_csv('/kaggle/working/' + name + '.csv', index_label="条目")
 
 
 for i in range(0,data_length):
-    counts = {"正面": 0, "负面": 0, "中性": 0}  # 初始化计数器
+    counts = {"正面": 0, "负面": 0, "中性": 0}  # Initialize counters
     for value in pred20.iloc[i, :-1]:
         value=value[:2]
 #         print(value)
@@ -126,14 +126,14 @@ for i in range(0,data_length):
         pred20.loc[i,"标签"]="中性"
 predicted_labels=pred20["标签"]
 test_y=data["标签"]
-# 计算准确率
+# Calculate accuracy
 accuracy=np.sum(data["标签"]==pred20["标签"])/data_length
-# 计算F1值
+# Calculate F1 score
 f1_micro = f1_score(test_y, predicted_labels, average='weighted')
-# 计算召回率
-recall = recall_score(test_y, predicted_labels, average='weighted')  # 可以选择其他的 average 参数
-# 计算精确度
-precision = precision_score(test_y, predicted_labels, average='weighted')  # 可以选择其他的 average 参数
+# Calculate recall
+recall = recall_score(test_y, predicted_labels, average='weighted')  # You can choose other average settings.
+# Calculate precision
+precision = precision_score(test_y, predicted_labels, average='weighted')  # You can choose other average settings.
 print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
 print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
 
@@ -154,14 +154,14 @@ for i in range(data_length):
         pred.append(1)
 labels=["Bearish","Neutral","Bullish"]
 label=[0,1,2]
-# #输出预测出错的标签
+# #Output misclassified labels
 # for i in range(len(true)):
 #     if true[i]!=pred[i]:
 #         print(i)
 cm = confusion_matrix(true, pred, labels=label)
-# 计算每一行的真实样本数
+# Compute the number of true samples in each row
 row_sums = cm.sum(axis=1, keepdims=True)
-# 将混淆矩阵中的每个元素除以相应的真实样本数，得到概率
+# Divide each confusion-matrix cell by its row total to obtain probabilities.
 cm_prob = cm / row_sums
 ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels, yticklabels=labels)
 ax.set_xlabel('Predicted labels')

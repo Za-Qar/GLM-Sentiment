@@ -16,17 +16,17 @@ import seaborn as sns
 from transformers import AutoModelForSequenceClassification,AutoTokenizer,pipeline
 
 seed = 5
-torch.manual_seed(seed)  # 设置 PyTorch 的随机种子
-torch.cuda.manual_seed_all(seed)  # 设置所有 GPU 的随机种子
-np.random.seed(seed)  # 设置 NumPy 的随机种子
-random.seed(seed)  # 设置 Python 自带的随机种子
+torch.manual_seed(seed)  # Set PyTorch random seed
+torch.cuda.manual_seed_all(seed)  # Set random seed for all GPUs
+np.random.seed(seed)  # Set NumPy random seed
+random.seed(seed)  # Set Python built-in random seed
 
 
 def load_sentence_polarity(data_path, train_ratio=0.8):
-    # 本任务中暂时只用train、test做划分，不包含dev验证集，
-    # train的比例由train_ratio参数指定，train_ratio=0.8代表训练语料占80%，test占20%
+    # This task currently uses only train/test split, without a dev set.
+    # train_ratio controls the split; 0.8 means 80% train and 20% test.
     all_data = []
-    # categories用于统计分类标签的总数，用set结构去重
+    # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
     data = df.drop(labels=['发布时间', '内容', '日期','标题'], axis=1)
@@ -36,11 +36,11 @@ def load_sentence_polarity(data_path, train_ratio=0.8):
     for i in range(0, len(data)):
         number=0
         for value in data.iloc[i, :]:
-            # polar指情感的类别：
+            # polar is the sentiment class:
             #   ——2：positive
             #   ——1：neutral
             #   ——0：negative
-            # sent指对应的句子
+            # sent is the corresponding sentence.
             number+=1
             if number%2==0:
                 sent = value
@@ -70,23 +70,23 @@ class RoBERTaDataset(Dataset):
         return self.data_size
 
     def __getitem__(self, index):
-        # 这里可以自行定义，Dataloader会使用__getitem__(self, index)获取数据
-        # 这里我设置 self.dataset[index] 规定了数据是按序号取得，序号是多少DataLoader自己算，用户不用操心
+        # Custom behavior can be defined here; DataLoader fetches data via __getitem__(self, index).
+        # Here data is returned as self.dataset[index]; DataLoader handles index generation automatically.
         return self.dataset[index]
 def sliding_window(sentence, window_size=512, stride=400):
 
-    # 切分后的子句列表
+    # List of split sub-sentences
     sub_sentences = []
-    # 句子长度
+    # Sentence length
     length = len(sentence)
-    # 开始滑动窗口
+    # Start sliding window
     start = 0
     while start < length:
-        # 计算当前窗口的结束位置
+        # Compute end position of current window
         end = min(start + window_size, length)
-        # 切分子句并加入列表
+        # Split sub-sentence and append to list
         sub_sentences.append(sentence[start:end])
-        # 滑动窗口
+        # Slide window
         start += stride
     return sub_sentences
 
@@ -97,27 +97,27 @@ def coffate_fn(examples):
 
         input_text = sent
         if len(sent) > 512:
-            input_text = sent[:128] + sent[-382:] #如果句子长度超过512，选择前128个token和后382个toke
-            # input_text = sent[:510]  # 如果句子长度不超过512，直接使用
+            input_text = sent[:128] + sent[-382:] # If sentence length exceeds 512, keep first 128 and last 382 tokens.
+            # input_text = sent[:510]  # If sentence length does not exceed 512, use it directly
         inputs.append(input_text)
         targets.append(int(polar))
 
-        # 使用tokenizer进行填充
+        # Use tokenizer for padding
     tokenized_inputs = tokenizer(inputs,
                                  padding=True,
                                  truncation=True,
                                  return_tensors="pt",
                                  max_length=512)
 
-    # 确保张量在同一设备上
+    # Ensure tensors are on the same device
     tokenized_inputs = {key: value.to(device) for key, value in tokenized_inputs.items()}
     targets = torch.tensor(targets, device=device)
 
     return tokenized_inputs, targets
 
-# 训练准备阶段，设置超参数和全局变量
+# Training setup: define hyperparameters and global variables.
 
-#计算验证集损失函数
+#Compute validation-set loss
 def compute_loss(model, dataloader, criterion, device):
     model.eval()
     total_loss = 0.0
@@ -135,15 +135,15 @@ def compute_loss(model, dataloader, criterion, device):
 
 
 batch_size = 3
-num_epoch = 2  # 训练轮次
-check_step = 1  # 用以训练中途对模型进行检验：每check_step个epoch进行一次测试和保存模型
-data_path = "./DataSet/中国石油130条数据.csv"  # 数据所在地址
-train_ratio = 0.7  # 训练集比例
-learning_rate = 1e-5  # 优化器的学习率
+num_epoch = 2  # Number of training epochs
+check_step = 1  # Used for mid-training checks: test and save every check_step epochs.
+data_path = "./DataSet/中国石油130条数据.csv"  # Dataset path
+train_ratio = 0.7  # Training set ratio
+learning_rate = 1e-5  # Optimizer learning rate
 
-# 获取训练、测试数据、分类类别总数
+# Load training/testing data and number of classes
 train_data, test_data, categories = load_sentence_polarity(data_path=data_path, train_ratio=train_ratio)
-# 将训练数据和测试数据的列表封装成Dataset以供DataLoader加载
+# Wrap train/test lists into Dataset objects for DataLoader.
 train_dataset = RoBERTaDataset(train_data)
 test_dataset = RoBERTaDataset(test_data)
 
@@ -155,12 +155,12 @@ test_dataloader = DataLoader(test_dataset,
                              batch_size=1,
                              collate_fn=coffate_fn)
 print(len(test_dataloader),len(test_dataset))
-#固定写法，可以牢记，cuda代表Gpu
-# torch.cuda.is_available()可以查看当前Gpu是否可用
+#Standard pattern: cuda represents GPU.
+# Use torch.cuda.is_available() to check GPU availability.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# 加载预训练的RoBERTa模型和分词器
+# Load pretrained RoBERTa model and tokenizer
 href="./RoBERTa"
 model = AutoModelForSequenceClassification.from_pretrained(href)
 tokenizer = AutoTokenizer.from_pretrained(href)
@@ -170,48 +170,48 @@ tokenizer = AutoTokenizer.from_pretrained(href)
 model.to(device)
 
 
-optimizer = Adam(model.parameters(), learning_rate)  #使用Adam优化器
-CE_loss = nn.CrossEntropyLoss()  # 使用crossentropy作为三分类任务的损失函数
+optimizer = Adam(model.parameters(), learning_rate)  #Use Adam optimizer
+CE_loss = nn.CrossEntropyLoss()  # Use cross-entropy loss for three-class classification
 
-# 记录当前训练时间，用以记录日志和存储
+# Record current time for logging and saving
 timestamp = time.strftime("%m_%d_%H_%M", time.localtime())
 
-# 开始训练，model.train()固定写法
+# Start training (model.train() standard usage).
 model.train()
 train_loss=[]
 validate_loss=[]
 for epoch in range(1, num_epoch + 1):
-    # 记录当前epoch的总loss
+    # Track total loss for current epoch
     total_loss = 0
-    # tqdm用以观察训练进度，在console中会打印出进度条
+    # Use tqdm to show training progress bar in the console.
     for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch}"):
 
         inputs, targets = batch
         inputs = {key: value.to(device) for key, value in inputs.items()}
         targets = targets.to(device)
-        # 清除现有的梯度
+        # Clear existing gradients
         optimizer.zero_grad()
 
-        # 模型前向传播，model(inputs)等同于model.forward(inputs)
+        # Forward pass; model(inputs) is equivalent to model.forward(inputs).
         bert_output = model(**inputs)
 
-        logits = bert_output.logits  # 提取logits
+        logits = bert_output.logits  # Extract logits
         loss = nn.CrossEntropyLoss()(logits, targets)
 
-        # 梯度反向传播
+        # Backpropagate gradients
         loss.backward()
 
-        # 根据反向传播的值更新模型的参数
+        # Update model parameters using backpropagated gradients
         optimizer.step()
 
-        # 统计总的损失，.item()方法用于取出tensor中的值
+        # Accumulate total loss; .item() extracts scalar value from tensor.
         total_loss += loss.item()
     train_loss.append(total_loss / len(train_dataloader))
-    # 在验证集上计算损失函数
+    # Compute loss on validation set
     val_loss = compute_loss(model, test_dataloader, CE_loss, device)
     validate_loss.append(val_loss)
 
-#绘损失图
+#Plot loss curves
 g1=plt.figure()
 plt.plot(train_loss,color='r', label='train_loss')
 plt.plot(validate_loss,color='g', label='validate_loss')
@@ -220,13 +220,13 @@ plt.xlabel('Epoch#')
 plt.ylabel('Loss')
 plt.yticks([0,0.2,0.4,0.6,0.8,1])
 plt.grid()
-plt.legend() #添加图例
+plt.legend() #Add legend
 plt.savefig("./DataSet/微调RoBERTa_LOSS")
 plt.show()
 
 
-#测试过程
-# acc统计模型在测试数据上分类结果中的正确个数
+#Testing phase
+# acc counts correct predictions on test data.
 acc = 0
 tg=0
 true=[]
@@ -236,7 +236,7 @@ pred=[]
 def load_test(data_path):
 
     all_data = []
-    # categories用于统计分类标签的总数，用set结构去重
+    # categories tracks unique class labels with a set.
     categories = set()
     df = pd.read_csv(data_path, encoding="UTF-8")
     data = df.drop(labels=['发布时间', '内容', '日期','标题'], axis=1)
@@ -246,11 +246,11 @@ def load_test(data_path):
     for i in range(0, len(data)):
         number=0
         for value in data.iloc[i, :]:
-            # polar指情感的类别：
+            # polar is the sentiment class:
             #   ——2：positive
             #   ——1：neutral
             #   ——0：negative
-            # sent指对应的句子
+            # sent is the corresponding sentence.
             number+=1
             if number%2==0:
                 sent = value
@@ -265,7 +265,7 @@ def load_test(data_path):
         all_data.append((polar, sent))
     test_data = all_data
     return test_data
-data_path = "./DataSet/新闻全文_已标注.csv"  # 数据所在地址
+data_path = "./DataSet/新闻全文_已标注.csv"  # Dataset path
 test_data = load_test(data_path=data_path)
 
 test_dataset = RoBERTaDataset(test_data)
@@ -281,33 +281,33 @@ for batch in tqdm(test_dataloader, desc=f"Testing"):
     with torch.no_grad():
         bert_output = model(**inputs)
 
-        # 获取 logits
+        # Get logits
         logits = bert_output.logits
 
-        # 使用 argmax 获取预测结果
+        # Use argmax to get predictions
         preds = logits.argmax(dim=1)
         true.append(targets.item())
         pred.append(preds.item())
         acc += (preds== targets).sum().item()
         tg+=len(targets)
-# 计算准确率
+# Calculate accuracy
 accuracy=acc/tg
-# 计算F1值
+# Calculate F1 score
 f1_micro = f1_score(true, pred, average='weighted')
-# 计算召回率
-recall = recall_score(true, pred, average='weighted')  # 可以选择其他的 average 参数
-# 计算精确度
-precision = precision_score(true, pred, average='weighted')  # 可以选择其他的 average 参数
-# print(f"召回率: {recall:.4f}\n精确率: {precision:.4f}")
-# print(f"准确率: {accuracy:.4f}\nF1值：{f1_micro:.4f}")
+# Calculate recall
+recall = recall_score(true, pred, average='weighted')  # You can choose other average settings.
+# Calculate precision
+precision = precision_score(true, pred, average='weighted')  # You can choose other average settings.
+# print(f"Recall: {recall:.4f}\nPrecision: {precision:.4f}")
+# print(f"Accuracy: {accuracy:.4f}\nF1 score: {f1_micro:.4f}")
 
-#混淆矩阵
+#Confusion matrix
 labels=["Bearish","Neutral","Bullish"]
 label=[0,1,2]
 cm = confusion_matrix(true, pred, labels=label)
-# 计算每一行的真实样本数
+# Compute the number of true samples in each row
 row_sums = cm.sum(axis=1, keepdims=True)
-# 将混淆矩阵中的每个元素除以相应的真实样本数，得到概率
+# Divide each confusion-matrix cell by its row total to obtain probabilities.
 cm_prob = cm / row_sums
 ax = sns.heatmap(cm_prob, annot=True, fmt=".2", cmap="Blues", xticklabels=labels, yticklabels=labels)
 ax.set_xlabel('Predicted labels')
@@ -319,9 +319,9 @@ plt.show()
 
 
 
-precisions = []  # 3个类别对应的精确度
-recalls = []  # 3个类别对应的召回率
-weights = [0.5, 0.3, 0.2]  # 负面类别权重最大，正面类别次之，中性类别最小
+precisions = []  # Precision for the 3 classes
+recalls = []  # Recall for the 3 classes
+weights = [0.5, 0.3, 0.2]  # Negative class has highest weight, positive second, neutral lowest.
 
 for i in range(len(label)):
     tp = cm[i, i]
