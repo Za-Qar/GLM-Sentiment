@@ -1,0 +1,63 @@
+{
+  "project_title": "Knowledge-Enhanced Chain-of-Thought LLM Sentiment for UK Equities",
+  "companies_path": "config/companies.csv",
+  "date_window": {
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31"
+  },
+  "data_paths": {
+    "raw_headlines": "data/raw/gdelt_headlines.csv",
+    "raw_prices": "data/raw/yfinance_prices.csv"
+  },
+  "schemas": {
+    "companies": [
+      "ticker",
+      "company_name",
+      "aliases",
+      "sector",
+      "products",
+      "risks"
+    ],
+    "headlines": [
+      "headline_id",
+      "source",
+      "published_at_utc",
+      "published_at_london",
+      "ticker",
+      "company_name",
+      "headline_text",
+      "mapping_confidence"
+    ],
+    "prices": [
+      "date",
+      "ticker",
+      "open",
+      "high",
+      "low",
+      "close",
+      "adj_close",
+      "volume"
+    ]
+  },
+  "sentiment_labels": [
+    "positive",
+    "negative",
+    "neutral"
+  ],
+  "alignment_rule": "next_trading_day_open",
+  "knowledge_levels": [
+    "none",
+    "sector",
+    "firm"
+  ],
+  "trading_strategies": [
+    "long_only",
+    "long_short"
+  ],
+  "evaluation_metrics": [
+    "macro_f1",
+    "accuracy",
+    "sharpe_ratio",
+    "hit_rate"
+  ]
+}
