@@ -16,6 +16,17 @@ def collect_yfinance_prices(
     end_date: date,
     output_path: str | Path,
 ):
+    """
+    Args:
+        companies   : selected ten-company universe from the project config.
+        start_date  : first date in the fixed experiment window.
+        end_date    : final date in the fixed experiment window.
+        output_path : CSV path where raw daily price rows are written.
+
+    Returns:
+        Pandas DataFrame containing normalized daily OHLCV prices.
+    """
+
     try:
         import pandas as pd
         import yfinance as yf
@@ -39,6 +50,15 @@ def collect_yfinance_prices(
 
 
 def normalize_yfinance_download(raw: pd.DataFrame, tickers: list[str]) -> pd.DataFrame:
+    """
+    Args:
+        raw     : DataFrame returned by yfinance.download.
+        tickers : ordered list of requested yfinance tickers.
+
+    Returns:
+        Flat DataFrame using the project price schema from config/experiment.json.
+    """
+
     import pandas as pd
 
     rows: list[dict] = []
@@ -59,6 +79,15 @@ def normalize_yfinance_download(raw: pd.DataFrame, tickers: list[str]) -> pd.Dat
 
 
 def frame_to_rows(frame: pd.DataFrame, ticker: str) -> list[dict]:
+    """
+    Args:
+        frame  : yfinance data for one ticker.
+        ticker : ticker assigned to every normalized row from this frame.
+
+    Returns:
+        List of dictionaries ready to be written as price CSV rows.
+    """
+
     import pandas as pd
 
     rename_map = {
@@ -71,6 +100,8 @@ def frame_to_rows(frame: pd.DataFrame, ticker: str) -> list[dict]:
     }
     normalized = frame.rename(columns=rename_map)
     normalized = normalized.reset_index()
+    # yfinance may name the date column differently depending on whether one or
+    # multiple tickers were requested, so we handle both cases explicitly.
     date_column = "Date" if "Date" in normalized.columns else normalized.columns[0]
 
     rows: list[dict] = []

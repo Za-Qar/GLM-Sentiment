@@ -13,6 +13,13 @@ DEFAULT_CONFIG = "config/experiment.json"
 
 
 def main() -> None:
+    """
+    Command-line entry point for the data-collection stage.
+
+    The commands mirror the submitted artefact scope: collect GDELT headlines,
+    collect yfinance prices, or collect both using the fixed experiment config.
+    """
+
     parser = argparse.ArgumentParser(description="UK DK-CoT dissertation data collection CLI")
     parser.add_argument("--config", default=DEFAULT_CONFIG, help="Path to experiment config JSON")
 
@@ -62,12 +69,28 @@ def main() -> None:
 
 
 def add_date_args(parser: argparse.ArgumentParser) -> None:
+    """
+    Args:
+        parser : subcommand parser that should accept date-window overrides.
+    """
+
     parser.add_argument("--start-date", help="Start date in YYYY-MM-DD format")
     parser.add_argument("--end-date", help="End date in YYYY-MM-DD format")
 
 
 def resolve_dates(args: argparse.Namespace, config: dict) -> tuple[date, date]:
+    """
+    Args:
+        args   : parsed CLI arguments that may override the configured dates.
+        config : loaded experiment config containing the default fixed window.
+
+    Returns:
+        Start and end dates used for this run.
+    """
+
     config_window = config.get("date_window", {})
+    # CLI date arguments support small smoke tests, while the config keeps the
+    # dissertation's default 12-month experiment reproducible.
     start_value = args.start_date or config_window.get("start_date")
     end_value = args.end_date or config_window.get("end_date")
     if not start_value or not end_value:
