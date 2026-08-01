@@ -1,0 +1,11 @@
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Local collection logs/process files
+outputs/*.log
+outputs/*.pid
+
+# Local smoke-test outputs; full raw datasets are handled deliberately
+data/raw/*_smoke.csv
+
