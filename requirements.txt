@@ -1,4 +1,5 @@
 pandas
+requests
 yfinance
 transformers
 torch

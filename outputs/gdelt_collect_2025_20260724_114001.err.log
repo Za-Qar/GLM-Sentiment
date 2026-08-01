@@ -1,0 +1,42 @@
+Traceback (most recent call last):
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\gdelt.py", line 131, in fetch_company_window
+    payload = fetch_json_with_retries(request)
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\gdelt.py", line 193, in fetch_json_with_retries
+    with urlopen(request, timeout=30) as response:
+         ~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 493, in open
+    response = meth(req, response)
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 602, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 531, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 464, in _call_chain
+    result = func(*args)
+  File "C:\Users\PC\AppData\Local\Python\pythoncore-3.14-64\Lib\urllib\request.py", line 611, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 429: Too Many Requests
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\cli.py", line 128, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\cli.py", line 50, in main
+    records = collect_gdelt_headlines(
+        companies,
+    ...<5 lines>...
+        args.months_per_window,
+    )
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\gdelt.py", line 85, in collect_gdelt_headlines
+    articles = fetch_company_window(company, window_start, window_end, max_records_per_window)
+  File "C:\Users\PC\Desktop\Zaid\dev\GLM-Sentiment\uk_dkcot\gdelt.py", line 134, in fetch_company_window
+    raise RuntimeError(message) from exc
+RuntimeError: GDELT request failed for AZN.L 2025-01-01 to 2025-03-31 using query 'AstraZeneca'

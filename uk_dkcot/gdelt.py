@@ -9,10 +9,10 @@ from datetime import date, datetime, timedelta, timezone
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Iterable
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+
+import requests
 
 from .config import Company, ensure_parent_dir
 
@@ -58,8 +58,9 @@ def collect_gdelt_headlines(
     start_date: date,
     end_date: date,
     output_path: str | Path,
-    max_records_per_month: int = 250,
-    pause_seconds: float = 10.0,
+    max_records_per_window: int = 250,
+    pause_seconds: float = 30.0,
+    months_per_window: int = 3,
 ) -> list[HeadlineRecord]:
     """
     Args:
@@ -67,8 +68,9 @@ def collect_gdelt_headlines(
         start_date            : first date in the fixed experiment window.
         end_date              : final date in the fixed experiment window.
         output_path           : CSV path where raw headline rows are written.
-        max_records_per_month : maximum GDELT articles requested per company-month.
-        pause_seconds         : delay between requests to respect GDELT throttling.
+        max_records_per_window : maximum GDELT articles requested per company/date window.
+        pause_seconds          : delay between requests to respect GDELT throttling.
+        months_per_window      : number of calendar months per GDELT request window.
 
     Returns:
         Raw GDELT headline records mapped to companies by configured aliases.
@@ -78,26 +80,28 @@ def collect_gdelt_headlines(
     seen_ids: set[str] = set()
 
     for company in companies:
-        for month_start, month_end in month_windows(start_date, end_date):
-            articles = fetch_company_month(company, month_start, month_end, max_records_per_month)
+        for window_start, window_end in collection_windows(start_date, end_date, months_per_window):
+            print(f"Collecting {company.ticker} {window_start} to {window_end}", flush=True)
+            articles = fetch_company_window(company, window_start, window_end, max_records_per_window)
             for article in articles:
                 record = article_to_record(article, company)
                 if record is None or record.headline_id in seen_ids:
                     continue
                 seen_ids.add(record.headline_id)
                 records.append(record)
+            print(f"Collected {len(records)} total headline rows so far", flush=True)
             time.sleep(pause_seconds)
 
     write_headlines(records, output_path)
     return records
 
 
-def fetch_company_month(company: Company, start_date: date, end_date: date, max_records: int) -> list[dict]:
+def fetch_company_window(company: Company, start_date: date, end_date: date, max_records: int) -> list[dict]:
     """
     Args:
         company     : company whose aliases are searched in GDELT.
-        start_date  : first date of the monthly request window.
-        end_date    : final date of the monthly request window.
+        start_date  : first date of the request window.
+        end_date    : final date of the request window.
         max_records : maximum number of articles to request from GDELT.
 
     Returns:
@@ -122,9 +126,8 @@ def fetch_company_month(company: Company, start_date: date, end_date: date, max_
     # GDELT serves the same DOC API over HTTP; in testing, Python HTTPS calls
     # were repeatedly throttled while HTTP respected the normal rate limit.
     url = "http://api.gdeltproject.org/api/v2/doc/doc?" + urlencode(params)
-    request = Request(url, headers={"User-Agent": "GLM-Sentiment dissertation prototype"})
     try:
-        payload = fetch_json_with_retries(request)
+        payload = fetch_json_with_retries(url)
     except Exception as exc:
         message = f"GDELT request failed for {company.ticker} {start_date} to {end_date} using query {query!r}"
         raise RuntimeError(message) from exc
@@ -173,10 +176,10 @@ def gdelt_search_aliases(company: Company) -> list[str]:
     return aliases or [company.company_name]
 
 
-def fetch_json_with_retries(request: Request, retries: int = 4, base_delay_seconds: float = 10.0) -> dict:
+def fetch_json_with_retries(url: str, retries: int = 5, base_delay_seconds: float = 30.0) -> dict:
     """
     Args:
-        request            : prepared GDELT HTTP request.
+        url                : prepared GDELT HTTP URL.
         retries            : maximum attempts before surfacing the API error.
         base_delay_seconds : delay multiplier used after throttling or network errors.
 
@@ -186,24 +189,24 @@ def fetch_json_with_retries(request: Request, retries: int = 4, base_delay_secon
 
     for attempt in range(retries):
         try:
-            with urlopen(request, timeout=30) as response:
-                body = response.read().decode("utf-8")
-                try:
-                    return json.loads(body)
-                except JSONDecodeError as exc:
-                    snippet = body[:300].replace("\n", " ").strip()
-                    raise ValueError(f"GDELT returned a non-JSON response: {snippet}") from exc
-        except HTTPError as exc:
-            can_retry = exc.code == 429 and attempt < retries - 1
+            response = requests.get(url, timeout=60)
+            if response.status_code == 429:
+                can_retry = attempt < retries - 1
+                if not can_retry:
+                    response.raise_for_status()
+                # GDELT asks public users to stay at roughly one request per 5 seconds;
+                # 30 seconds is deliberately conservative for reproducible collection.
+                time.sleep(base_delay_seconds * (attempt + 1))
+                continue
+            response.raise_for_status()
+            try:
+                return response.json()
+            except JSONDecodeError as exc:
+                snippet = response.text[:300].replace("\n", " ").strip()
+                raise ValueError(f"GDELT returned a non-JSON response: {snippet}") from exc
+        except requests.RequestException:
+            can_retry = attempt < retries - 1
             if not can_retry:
-                raise
-            retry_after = exc.headers.get("Retry-After")
-            # GDELT asks public users to stay at roughly one request per 5 seconds;
-            # 10 seconds is deliberately conservative for reproducible collection.
-            delay = float(retry_after) if retry_after and retry_after.isdigit() else base_delay_seconds * (attempt + 1)
-            time.sleep(delay)
-        except URLError:
-            if attempt >= retries - 1:
                 raise
             time.sleep(base_delay_seconds * (attempt + 1))
 
@@ -290,26 +293,43 @@ def gdelt_datetime(value: date, start: bool) -> str:
     return value.strftime("%Y%m%d") + suffix
 
 
-def month_windows(start_date: date, end_date: date) -> Iterable[tuple[date, date]]:
+def collection_windows(start_date: date, end_date: date, months_per_window: int) -> Iterable[tuple[date, date]]:
     """
     Args:
-        start_date : first date in the full collection window.
-        end_date   : final date in the full collection window.
+        start_date        : first date in the full collection window.
+        end_date          : final date in the full collection window.
+        months_per_window : number of calendar months included in each request.
 
     Returns:
-        Month-sized date windows to keep each GDELT request manageable.
+        Date windows to keep each GDELT request manageable without over-querying.
     """
+
+    if months_per_window < 1:
+        raise ValueError("months_per_window must be at least 1.")
 
     current = date(start_date.year, start_date.month, 1)
     while current <= end_date:
-        if current.month == 12:
-            next_month = date(current.year + 1, 1, 1)
-        else:
-            next_month = date(current.year, current.month + 1, 1)
+        next_window = add_months(current, months_per_window)
         window_start = max(current, start_date)
-        window_end = min(next_month - timedelta(days=1), end_date)
+        window_end = min(next_window - timedelta(days=1), end_date)
         yield window_start, window_end
-        current = next_month
+        current = next_window
+
+
+def add_months(value: date, months: int) -> date:
+    """
+    Args:
+        value  : starting date.
+        months : number of calendar months to add.
+
+    Returns:
+        Date moved forward by the requested number of months.
+    """
+
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, 1)
 
 
 def write_headlines(records: Iterable[HeadlineRecord], output_path: str | Path) -> None:

@@ -4,6 +4,9 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Iterable
 
+import pandas as pd
+import yfinance as yf
+
 from .config import Company, ensure_parent_dir
 
 
@@ -26,12 +29,6 @@ def collect_yfinance_prices(
     Returns:
         Pandas DataFrame containing normalized daily OHLCV prices.
     """
-
-    try:
-        import pandas as pd
-        import yfinance as yf
-    except ImportError as exc:
-        raise RuntimeError("pandas and yfinance are required for price collection. Install requirements.txt first.") from exc
 
     tickers = [company.ticker for company in companies]
     raw = yf.download(
@@ -59,8 +56,6 @@ def normalize_yfinance_download(raw: pd.DataFrame, tickers: list[str]) -> pd.Dat
         Flat DataFrame using the project price schema from config/experiment.json.
     """
 
-    import pandas as pd
-
     rows: list[dict] = []
 
     if raw.empty:
@@ -87,8 +82,6 @@ def frame_to_rows(frame: pd.DataFrame, ticker: str) -> list[dict]:
     Returns:
         List of dictionaries ready to be written as price CSV rows.
     """
-
-    import pandas as pd
 
     rename_map = {
         "Open": "open",

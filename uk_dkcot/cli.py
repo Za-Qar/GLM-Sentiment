@@ -28,7 +28,7 @@ def main() -> None:
     headlines = subparsers.add_parser("collect-headlines", help="Collect GDELT headline data")
     add_date_args(headlines)
     headlines.add_argument("--output", help="Output CSV path for headlines")
-    headlines.add_argument("--max-records-per-month", type=int, default=250)
+    add_gdelt_args(headlines)
 
     prices = subparsers.add_parser("collect-prices", help="Collect yfinance daily prices")
     add_date_args(prices)
@@ -38,7 +38,7 @@ def main() -> None:
     add_date_args(collect_all)
     collect_all.add_argument("--headlines-output", help="Output CSV path for headlines")
     collect_all.add_argument("--prices-output", help="Output CSV path for prices")
-    collect_all.add_argument("--max-records-per-month", type=int, default=250)
+    add_gdelt_args(collect_all)
 
     args = parser.parse_args()
     config = load_experiment_config(args.config)
@@ -47,7 +47,15 @@ def main() -> None:
 
     if args.command == "collect-headlines":
         output = args.output or config["data_paths"]["raw_headlines"]
-        records = collect_gdelt_headlines(companies, start_date, end_date, output, args.max_records_per_month)
+        records = collect_gdelt_headlines(
+            companies,
+            start_date,
+            end_date,
+            output,
+            args.max_records_per_window,
+            args.pause_seconds,
+            args.months_per_window,
+        )
         print(f"Wrote {len(records)} headline rows to {output}")
     elif args.command == "collect-prices":
         output = args.output or config["data_paths"]["raw_prices"]
@@ -61,7 +69,9 @@ def main() -> None:
             start_date,
             end_date,
             headlines_output,
-            args.max_records_per_month,
+            args.max_records_per_window,
+            args.pause_seconds,
+            args.months_per_window,
         )
         prices = collect_yfinance_prices(companies, start_date, end_date, prices_output)
         print(f"Wrote {len(records)} headline rows to {headlines_output}")
@@ -76,6 +86,17 @@ def add_date_args(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument("--start-date", help="Start date in YYYY-MM-DD format")
     parser.add_argument("--end-date", help="End date in YYYY-MM-DD format")
+
+
+def add_gdelt_args(parser: argparse.ArgumentParser) -> None:
+    """
+    Args:
+        parser : subcommand parser that should accept GDELT collection controls.
+    """
+
+    parser.add_argument("--max-records-per-window", type=int, default=250)
+    parser.add_argument("--months-per-window", type=int, default=3)
+    parser.add_argument("--pause-seconds", type=float, default=30.0)
 
 
 def resolve_dates(args: argparse.Namespace, config: dict) -> tuple[date, date]:
